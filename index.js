@@ -11,11 +11,12 @@ console.log('--- DÉMARRAGE BOT SCOUTS Railway ---');
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 
-// Variables Google Sheet (pour archivage ultérieur)
+// Variables Google Sheet
 let creds, SPREADSHEET_ID;
 try {
   creds = JSON.parse(process.env.GOOGLE_CREDS_JSON);
   SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+  if (!creds || !SPREADSHEET_ID) throw new Error('Variables d’environnement manquantes');
 } catch (e) {
   console.error('Erreur config :', e);
 }
@@ -43,7 +44,7 @@ async function main() {
     }
   });
 
-  // LOG MASSIF - tous les messages reçus s'affichent ici
+  // ARCHIVAGE ET LOG DE TOUS LES MESSAGES REÇUS
   sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
       try {
@@ -53,9 +54,25 @@ async function main() {
         const sender = msg.pushName || 'Inconnu';
         const messageType = msg.message ? Object.keys(msg.message).join(',') : "inconnu";
         const groupFlag = jid.endsWith('@g.us') ? "[GROUPE]" : "[PRIVÉ]";
+        const groupName = sock.chats?.get(jid)?.name || '';
+
+        // Log display
         console.log(`[RECU ${groupFlag}] JID: ${jid} | Type: ${messageType} | De: ${sender} | Moi: ${fromMe} | Message: "${body}"`);
+
+        // Archivage automatique dans la Sheet
+        const doc = new GoogleSpreadsheet(SPREADSHEET_ID);
+        await doc.useServiceAccountAuth(creds);
+        await doc.loadInfo();
+        const sheet = doc.sheetsByIndex[0];
+        await sheet.addRow({
+          date: new Date().toLocaleString('fr-FR'),
+          auteur: sender,
+          contenu: body,
+          groupe: groupName || jid
+        });
+        console.log(`[ARCHIVE] Ajoutée à la Sheet : Groupe/JID: ${groupName || jid}, Auteur: ${sender}, Message: "${body}"`);
       } catch (e) {
-        console.error('Erreur logging message :', e);
+        console.error('Erreur logging/archivage message :', e);
       }
     }
   });
