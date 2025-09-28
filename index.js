@@ -11,6 +11,7 @@ console.log('--- DÉMARRAGE BOT SCOUTS Railway ---');
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 
+// Variables Railway (facultatif ici, pour la future archivage Sheet)
 let creds, SPREADSHEET_ID;
 try {
   creds = JSON.parse(process.env.GOOGLE_CREDS_JSON);
@@ -18,7 +19,6 @@ try {
   if (!creds || !SPREADSHEET_ID) throw new Error('Variables d’environnement manquantes');
 } catch (e) {
   console.error('Erreur config :', e);
-  process.exit(1);
 }
 
 const GROUPS_TO_TRACK = [
@@ -49,28 +49,19 @@ async function main() {
     }
   });
 
+  // -------- LOG MASSIF de tous les messages reçus --------
   sock.ev.on('messages.upsert', async ({ messages }) => {
-    for(const msg of messages) {
+    for (const msg of messages) {
       try {
-        if(!msg.key.remoteJid.endsWith('@g.us')) return;
-        const groupName = sock.chats?.get(msg.key.remoteJid)?.name || '';
-        if(!GROUPS_TO_TRACK.includes(groupName)) return;
+        const jid = msg.key.remoteJid || "";
+        const fromMe = msg.key.fromMe;
         const body = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
-        if(!body) return;
         const sender = msg.pushName || 'Inconnu';
-        const doc = new GoogleSpreadsheet(SPREADSHEET_ID);
-        await doc.useServiceAccountAuth(creds);
-        await doc.loadInfo();
-        const sheet = doc.sheetsByIndex[0];
-        await sheet.addRow({
-          date: new Date().toLocaleString('fr-FR'),
-          auteur: sender,
-          contenu: body,
-          groupe: groupName
-        });
-        console.log(`Msg archivé [${groupName}] : ${body.substr(0, 80)}...`);
+        const messageType = msg.message ? Object.keys(msg.message).join(',') : "inconnu";
+        const groupFlag = jid.endsWith('@g.us') ? "[GROUPE]" : "[PRIVÉ]";
+        console.log(`[RECU ${groupFlag}] JID: ${jid} | Type: ${messageType} | De: ${sender} | Moi: ${fromMe} | Message: "${body}"`);
       } catch (e) {
-        console.error('Erreur sauvegarde message :', e);
+        console.error('Erreur logging message :', e);
       }
     }
   });
