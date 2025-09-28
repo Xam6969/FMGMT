@@ -1,9 +1,8 @@
-const { Client } = require('whatsapp-web.js');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
-const qrcode = require('qrcode-terminal');
 
-// Variables Railway
-const creds = JSON.parse(process.env.GOOGLE_CREDS_JSON);
+// Configuration
+const creds = JSON.parse(process.env.GOOGLE_CREDS_JSON );
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 const GROUPS_TO_TRACK = [
@@ -11,26 +10,53 @@ const GROUPS_TO_TRACK = [
   "Ronde Ste Bernadette 2024-2025"
 ];
 
-const client = new Client();
+async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState('baileys_auth');
+    const { version } = await fetchLatestBaileysVersion();
+    const sock = makeWASocket({ version, auth: state });
 
-client.on('qr', qr => qrcode.generate(qr, {small: true}));
-client.on('ready', () => console.log('WhatsApp prêt !'));
+    sock.ev.on('creds.update', saveCreds);
 
-client.on('message', async (message) => {
-    if (message.isGroupMsg && message.from && message.from.includes("@g.us")) {
-        const chat = await message.getChat();
-        if (GROUPS_TO_TRACK.includes(chat.name) && message.body && message.body.length > 0) {
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        if (qr) {
+            console.log("\n\nSCANNE SUR TON TÉLÉPHONE:\n\n" + qr + "\n\n");
+        }
+        if(connection === 'open') {
+            console.log('WhatsApp (Baileys) connecté !');
+        }
+        if(connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            console.log('Connexion fermée. Reconnexion:', shouldReconnect);
+            if(shouldReconnect) {
+                connectToWhatsApp();
+            }
+        }
+    });
+
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        for(const msg of messages) {
+            if(!msg.key.remoteJid.endsWith('@g.us')) return; // Only group messages
+            if(!msg.message?.conversation && !msg.message?.extendedTextMessage?.text) return;
+            const groupName = sock.chats.get(msg.key.remoteJid)?.name || '';
+            if(!GROUPS_TO_TRACK.includes(groupName)) return;
+
+            const content = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+            const sender = msg.pushName || 'Inconnu';
+
             const doc = new GoogleSpreadsheet(SPREADSHEET_ID);
             await doc.useServiceAccountAuth(creds);
             await doc.loadInfo();
             const sheet = doc.sheetsByIndex[0];
             await sheet.addRow({
                 date: new Date().toLocaleString('fr-FR'),
-                auteur: message.author || 'Inconnu',
-                contenu: message.body,
-                groupe: chat.name
+                auteur: sender,
+                contenu: content,
+                groupe: groupName
             });
+            console.log(`Msg archivé (${groupName}) : ${content.substr(0,60)}...`);
         }
-    }
-});
-client.initialize();
+    });
+}
+
+connectToWhatsApp();
