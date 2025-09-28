@@ -8,7 +8,7 @@ process.on('uncaughtException', (err) => {
 
 console.log('--- DÉMARRAGE BOT SCOUTS Railway ---');
 
-const { makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 
 let creds, SPREADSHEET_ID;
@@ -27,7 +27,7 @@ const GROUPS_TO_TRACK = [
 ];
 
 async function main() {
-  const { state, saveCreds } = useSingleFileAuthState('/tmp/auth_info_multi.json');
+  const { state, saveCreds } = await useMultiFileAuthState('/tmp/auth_info_multi');
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({ version, auth: state, printQRInTerminal: true });
 
