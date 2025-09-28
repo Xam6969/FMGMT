@@ -1,13 +1,4 @@
-{
-  "name": "wa-fmgmt-scouts-baileys",
-  "version": "1.0.0",
-  "description": "WhatsApp Scouts → Google Sheets (FMGMT, Baileys, railway)",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "@whiskeysockets/baileys": "^6.6.0",
-    "google-spreadsheet": "^3.3.0"
-  }
+"dependencies": {
+  "@whiskeysockets/baileys": "^6.6.0",
+  "google-spreadsheet": "^3.3.0"
 }
