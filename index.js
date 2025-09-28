@@ -27,7 +27,7 @@ const GROUPS_TO_TRACK = [
 ];
 
 async function main() {
-  const { state, saveCreds } = useSingleFileAuthState('/tmp/auth_info_multi.json'); // Railway autorise /tmp
+  const { state, saveCreds } = useSingleFileAuthState('/tmp/auth_info_multi.json');
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({ version, auth: state, printQRInTerminal: true });
 
