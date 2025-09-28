@@ -1,0 +1,14 @@
+{
+  "name": "wa-fmgmt-scouts",
+  "version": "1.0.0",
+  "description": "WhatsApp Scouts → Google Sheets (FMGMT)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.21.0",
+    "google-spreadsheet": "^3.3.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
