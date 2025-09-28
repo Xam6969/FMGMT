@@ -11,20 +11,14 @@ console.log('--- DÉMARRAGE BOT SCOUTS Railway ---');
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 
-// Variables Railway (facultatif ici, pour la future archivage Sheet)
+// Variables Google Sheet (pour archivage ultérieur)
 let creds, SPREADSHEET_ID;
 try {
   creds = JSON.parse(process.env.GOOGLE_CREDS_JSON);
   SPREADSHEET_ID = process.env.SPREADSHEET_ID;
-  if (!creds || !SPREADSHEET_ID) throw new Error('Variables d’environnement manquantes');
 } catch (e) {
   console.error('Erreur config :', e);
 }
-
-const GROUPS_TO_TRACK = [
-  "Ronde Ste Bernadette 🌸",
-  "Ronde Ste Bernadette 2024-2025"
-];
 
 async function main() {
   const { state, saveCreds } = await useMultiFileAuthState('/tmp/auth_info_multi');
@@ -49,7 +43,7 @@ async function main() {
     }
   });
 
-  // -------- LOG MASSIF de tous les messages reçus --------
+  // LOG MASSIF - tous les messages reçus s'affichent ici
   sock.ev.on('messages.upsert', async ({ messages }) => {
     for (const msg of messages) {
       try {
